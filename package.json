@@ -1,0 +1,9 @@
+{
+  "name": "axie-sprout-lantern",
+  "version": "0.1.0",
+  "description": "Axie: Sprout & Lantern — a cozy farming and twilight exploration Vibeathon prototype.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000"
+  }
+}
