@@ -457,15 +457,15 @@ function tryFuel(id) {
 }
 
 function handlePlayInput() {
-  const locked = menus.isModalOpen() || dialogueActive();
-
+  // NB: modals and dialogues are separate locks — the dialogue branch below
+  // must be reachable while a dialogue is up (it is the only way to advance it).
   if (input.consume('KeyM')) {
     const m = audio.toggleMute();
     toast(m ? 'Sound off' : 'Sound on');
     return;
   }
 
-  if (locked) {
+  if (menus.isModalOpen()) {
     if (input.consume('Escape')) menus.closeModal();
     return;
   }

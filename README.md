@@ -18,11 +18,14 @@ No build step, no dependencies — plain HTML/CSS/ES-modules + a 2D canvas.
 
 ```bash
 cd axie-sprout-lantern
-python3 -m http.server 8000     # or: npm start
+python3 serve.py                # or: npm start
 # open http://localhost:8000
 ```
 
-(Any static file server works; ES modules require http://, not file://.)
+`serve.py` is a static server with **caching disabled**, so a reload always
+picks up fresh JS (any other static server works too; ES modules require
+http://, not file:// — but if you switch away from serve.py, hard-refresh
+after editing code).
 
 ### Deploying (GitHub + Vercel)
 
@@ -54,8 +57,11 @@ node test/smoke.mjs
 Boots the real game under a DOM stub and plays the whole slice:
 plant → harvest → craft fuel → all three light puzzles → all three restorations →
 Moonflower discovery → ending → save/load round-trip — including the
-minimap's purification grid and the new audio paths (run on a mocked
-WebAudio graph, so the music scheduler is actually executed). **49 checks.**
+minimap's purification grid, the new audio paths (run on a mocked WebAudio
+graph, so the music scheduler is actually executed), and the real input path
+(fuel keys 1/2/3, Ember Pulse, rest, Grove Song, spirit dialogue, ending
+buttons — including that the opening dialogue actually closes on E).
+**64 checks.**
 
 ---
 

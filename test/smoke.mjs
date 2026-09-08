@@ -247,6 +247,8 @@ frames(5);
 
 // skip opening dialogue (2 steps: type, advance, type, finish)
 for (let i = 0; i < 4; i++) { key('KeyE'); key('KeyE', false); frames(2); }
+const { dialogueActive } = await import('../js/ui/dialogue.js');
+check('opening dialogue actually closed', dialogueActive() === false);
 
 // ---- walk to first plot (plot 0 at 710,1710) and plant
 console.log('farming…');
@@ -330,10 +332,75 @@ check('restore workshop', tryRestore(g, 'workshop') === true);
 check('restore teahouse', tryRestore(g, 'teahouse') === true);
 frames(5);
 
+// ---- interaction paths the slice doesn't otherwise touch ----
+console.log('interactions…');
+const { currentInteraction, performInteraction } = await import('../js/systems/interactions.js');
+const { BUILT, DEEP_ARCH, REST_STONE, SPIRIT_POS } = await import('../js/world/map.js');
+const fakeUi = { toast() {}, banner() {}, markDirty() {}, openMenu() {}, openPlant() {}, showDialogue() {} };
+
+// fuel switching via the real 1/2/3 input path
+g.inv.fuel.moonspore = 1;
+g.inv.fuel.dreamcap = 0;
+g.fuel = null;
+key('Digit1'); key('Digit1', false); frames(2);
+check('fuel key 1 lights moonspore', g.fuel === 'moonspore');
+key('Digit1'); key('Digit1', false); frames(2);
+check('fuel key 1 toggles off', g.fuel === null);
+key('Digit3'); key('Digit3', false); frames(2);
+check('fuel key 3 with 0 stock stays off', g.fuel === null);
+key('Digit2'); key('Digit2', false); frames(2);
+check('fuel key 2 lights sunpetal', g.fuel === 'sunpetal');
+g.fuel = null;
+
+// rest stone
+g.px = REST_STONE.x; g.py = REST_STONE.y + 10;
+frames(5);
+{
+  const t = currentInteraction(g);
+  check('rest interaction found', t && t.act === 'rest');
+  performInteraction(g, fakeUi, t);
+  check('rest applies cooldown', g.flags.restCooldown > 0);
+}
+
+// grove song (bond 4)
+g.bondXp = 180; g.bondLevel = 4;
+g.px = BUILT.bigTree.x; g.py = BUILT.bigTree.y + 46;
+frames(5);
+{
+  const t = currentInteraction(g);
+  check('grove song available at bond 4', t && t.act === 'song');
+  performInteraction(g, fakeUi, t);
+  check('song starts', g.fx.songT > 0);
+}
+
+// deep arch
+g.px = DEEP_ARCH.x; g.py = DEEP_ARCH.y + 20;
+frames(5);
+{
+  const t = currentInteraction(g);
+  check('deep arch interaction found', t && t.act === 'deep');
+  performInteraction(g, fakeUi, t);
+}
+
+// ember pulse (bond 5) — also purifies a wide swathe of the minimap
+g.bondXp = 300; g.bondLevel = 5;
+const cellsBefore = g.minimap.cells.filter((c) => c).length;
+key('KeyL'); key('KeyL', false); frames(30);
+check('ember pulse fires', g.fx.pulseT > 0);
+check('pulse purifies a wide area', g.minimap.cells.filter((c) => c).length > cellsBefore + 20);
+
+// spirit dialogue (Mori)
+g.px = SPIRIT_POS.mori.x; g.py = SPIRIT_POS.mori.y;
+frames(5);
+{
+  const t = currentInteraction(g);
+  check('spirit interaction found', t && t.act === 'spirit:mori');
+  performInteraction(g, fakeUi, t);
+  check('mori befriended', g.spirits.mori.met === true);
+}
+
 // ---- moonflower via interaction layer
 console.log('moonflower…');
-const { currentInteraction, performInteraction } = await import('../js/systems/interactions.js');
-const fakeUi = { toast() {}, banner() {}, markDirty() {}, openMenu() {}, openPlant() {}, showDialogue() {} };
 g.px = 2803; g.py = 404; // moonflower plot center
 frames(5);
 const target = currentInteraction(g);
@@ -349,6 +416,11 @@ frames(400); // ~6.6s
 check('ending triggered', dbg.mode === 'ending');
 check('save exists', !!globalThis.localStorage.getItem('axie-sprout-lantern.save.v1'));
 frames(400);
+
+// ending card: Keep Exploring returns to play at the saved spot
+globalThis.document.getElementById('screen-ending').querySelector('[data-act="explore"]').dispatch('click');
+frames(5);
+check('keep exploring returns to play', dbg.mode === 'play' && dbg.game.flags.moonflower === true);
 
 // ---- save/restore roundtrip
 console.log('save/restore…');
