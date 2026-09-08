@@ -5,6 +5,7 @@ import { paintPortrait } from '../axie/sprites.js';
 import { FUELS, FUEL_ORDER } from '../systems/lantern.js';
 import { BOND_LEVELS } from '../axie/bond.js';
 import { LEVELS, questHint } from '../systems/progression.js';
+import { minimapBuild } from './minimap.js';
 
 const cache = {};
 
@@ -38,6 +39,15 @@ export function buildHud(root, game) {
   const phase = el('div', 'hud-phase');
   hud.append(phase);
 
+  // top-right (below the dust stack): Twilight minimap
+  const mmWrap = el('div', 'hud-minimap');
+  const mmCanvas = document.createElement('canvas');
+  mmCanvas.className = 'minimap-canvas';
+  const mmLabel = el('div', 'minimap-label', 'The Twilight');
+  mmWrap.append(mmCanvas, mmLabel);
+  hud.append(mmWrap);
+  minimapBuild(mmCanvas, game);
+
   // bottom-right: fuel slots
   const fuelWrap = el('div', 'hud-fuel');
   FUEL_ORDER.forEach((id, i) => {
@@ -66,6 +76,7 @@ export function buildHud(root, game) {
   root.append(hud);
 
   cache.hud = hud;
+  cache.mmCanvas = mmCanvas;
   cache.portrait = portrait;
   cache.name = name;
   cache.cls = cls;
@@ -103,6 +114,10 @@ function axieDef(game) {
 
 export function refreshPortrait(game) {
   if (cache.portrait) paintPortrait(cache.portrait, axieDef(game));
+}
+
+export function getMinimapCanvas() {
+  return cache.mmCanvas || null;
 }
 
 export function setPrompt(label, enabled = true) {

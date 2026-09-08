@@ -352,6 +352,27 @@ html, body {
 .hud-journal:hover { background: rgba(255, 217, 138, 0.16); box-shadow: 0 0 14px rgba(255, 217, 138, 0.25); }
 .hud-journal .key { margin-left: 6px; }
 
+.hud-minimap {
+  position: absolute;
+  top: 132px;
+  right: 14px;
+  background: rgba(20, 17, 34, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 18px rgba(90, 100, 180, 0.2);
+}
+.minimap-canvas { width: 150px; height: 135px; display: block; border-radius: 7px; }
+.minimap-label {
+  font: 500 9px var(--sans);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(185, 200, 255, 0.55);
+  text-align: center;
+  margin-top: 5px;
+}
+
 .hud-phase {
   position: absolute;
   top: 14px;

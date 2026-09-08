@@ -3,6 +3,7 @@
 
 import { paintPortrait } from '../axie/sprites.js';
 import { TRAITS } from '../axie/axies.js';
+import { audio } from '../core/audio.js';
 
 let screens = {};
 let introStep = 0;
@@ -84,6 +85,7 @@ export function buildScreens(root, handlers) {
     card.append(port, body);
     card.addEventListener('click', () => {
       selected = def;
+      audio.axiePick(def.cls);
       [...cards.children].forEach((c) => c.classList.remove('selected'));
       card.classList.add('selected');
       sel.querySelector('.select-begin').disabled = false;

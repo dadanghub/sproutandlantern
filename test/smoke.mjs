@@ -183,6 +183,30 @@ let g = dbg.game;
 check('axie is Fern (Plant)', g.axieName === 'Fern' && g.axieCls === 'plant');
 frames(5);
 
+// per-axie pick sound + music loop are safe to call (no AudioContext here)
+{
+  const { audio } = await import('../js/core/audio.js');
+  audio.axiePick('plant');
+  audio.axiePick('aquatic');
+  audio.startMusic();
+  frames(5); // music scheduler runs under update() with null ctx
+  audio.stopMusic();
+  check('pick sounds + music loop calls are safe', true);
+}
+
+// HUD carries the portrait + Twilight minimap canvases
+{
+  const hud = globalThis.document.getElementById('hud');
+  let canvases = 0;
+  const walk = (n) => {
+    if (!n) return;
+    if (n.tagName === 'CANVAS') canvases++;
+    (n.children || []).forEach(walk);
+  };
+  walk(hud);
+  check('hud has portrait + minimap canvases', canvases === 2);
+}
+
 // skip opening dialogue (2 steps: type, advance, type, finish)
 for (let i = 0; i < 4; i++) { key('KeyE'); key('KeyE', false); frames(2); }
 
@@ -237,6 +261,8 @@ g.px = 1826; g.py = 916;
 frames(10);
 check('flower puzzle solved', g.puzzles.flowersDone === true);
 check('level 3 twilight walker', g.level >= 3);
+check('minimap state exists', g.minimap && g.minimap.cells.length === 30 * 27);
+check('lantern purifies minimap cells', g.minimap.cells.some((c) => c === 1));
 
 // ---- bridge puzzle
 console.log('bridge…');
@@ -295,6 +321,7 @@ const { hydrateGame } = await import('../js/game/state.js');
 const g2 = hydrateGame(loaded, { id: 'demo-axie-001', name: 'Fern', cls: 'plant', colors: {} });
 check('hydrate restores flags', g2.flags.moonflower === true && g2.puzzles.stonesDone === true);
 check('hydrate restores inventory', g2.inv.fuel.moonspore >= 1);
+check('minimap persisted in save', loaded.minimap && loaded.minimap.cells.length === 30 * 27 && loaded.minimap.cells.some((c) => c === 1));
 
 // ---- menus: exercise the DOM modal code paths
 console.log('menus…');

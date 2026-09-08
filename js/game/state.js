@@ -2,6 +2,7 @@
 // saved state back over defaults so old saves survive new fields.
 
 import { PLOTS } from '../world/map.js';
+import { newMinimapState } from '../ui/minimap.js';
 
 export function newGame(axieDef) {
   return {
@@ -63,6 +64,7 @@ export function newGame(axieDef) {
     // exploration
     areas: { grove: true, 'forest-entrance': false, stream: false, 'stone-circle': false, garden: false, clearing: false, deep: false },
     deepest: 0,
+    minimap: newMinimapState(), // lantern-purified cells of the Twilight
 
     // bond
     bondXp: 0,

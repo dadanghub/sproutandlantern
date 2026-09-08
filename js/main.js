@@ -22,7 +22,8 @@ import { FUELS } from './systems/lantern.js';
 import { addBondXp } from './axie/bond.js';
 
 import { renderGame } from './world/render.js';
-import { buildHud, updateHud, setPrompt, setHudHandlers, refreshPortrait } from './ui/hud.js';
+import { buildHud, updateHud, setPrompt, setHudHandlers, refreshPortrait, getMinimapCanvas } from './ui/hud.js';
+import { minimapTick, minimapDraw } from './ui/minimap.js';
 import { buildToasts, toast, banner } from './ui/toasts.js';
 import { buildDialogue, dialogueActive, advance as advanceDialogue, tickDialogue, showDialogue as dialogueShow } from './ui/dialogue.js';
 import * as menus from './ui/menus.js';
@@ -213,6 +214,7 @@ function beginRun(def, isContinue) {
   camera.zoom = 1;
   camera.targetZoom = 1;
   mode = 'play';
+  audio.startMusic();
   showScreen(null);
   menus.closeModal();
   buildHudFor(game);
@@ -523,12 +525,16 @@ function render(dt, now) {
       ctx.fill();
     }
     ctx.restore();
-    return;
+  } else {
+    renderGame(ctx, W, H, g, dt, now, {});
   }
-  renderGame(ctx, W, H, g, dt, now, {});
 
-  if (mode === 'play' && hudBuiltFor === game) {
+  if ((mode === 'play' || mode === 'ending') && hudBuiltFor === game) {
     updateHud(game);
+    // Twilight minimap
+    minimapTick(game, dt);
+    const mm = getMinimapCanvas();
+    if (mm) minimapDraw(mm.getContext('2d'), game, now);
   }
 }
 

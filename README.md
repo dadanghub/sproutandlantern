@@ -53,7 +53,8 @@ node test/smoke.mjs
 
 Boots the real game under a DOM stub and plays the whole slice:
 plant → harvest → craft fuel → all three light puzzles → all three restorations →
-Moonflower discovery → ending → save/load round-trip. **43 checks.**
+Moonflower discovery → ending → save/load round-trip — including the
+minimap's purification grid and the new audio paths. **48 checks.**
 
 ---
 
@@ -67,7 +68,7 @@ Moonflower discovery → ending → save/load round-trip. **43 checks.**
 | I | Satchel (inventory) |
 | J | Grove Journal |
 | Esc | Pause |
-| M | Sound on/off |
+| M | Sound on/off (ambience + music) |
 | L | Ember Pulse (Bond 5) |
 | Mouse | All menus |
 
@@ -94,6 +95,15 @@ Moonflower discovery → ending → save/load round-trip. **43 checks.**
   non-punishing bond-with-the-grove system (water crops, savor treats, discover
   together) that unlocks real perks up to the Ember Pulse lantern ability.
 - **Glowdust** is a soft in-game currency only — no tokens, no speculation, no wallet.
+- **The Twilight minimap** (top-right of the HUD): the corrupted forest starts
+  shrouded in mist, and your lantern literally purifies it — cells your light
+  reaches open up, landmarks appear as you reach their areas or meet their
+  spirits, and your lantern dot glows in the active fuel color. Progress
+  persists in the save.
+- **Music & sound:** a short generative music loop (4-bar Am–F–C–G, A/B
+  variations, ~23s full pattern) darkens through a lowpass as twilight falls,
+  layered over the forest ambience. Each Axie class has its own selection
+  motif (sprout, droplet, chirp, thud, buzz, hiss).
 
 ### Demo Axies
 
@@ -118,7 +128,8 @@ js/
   core/
     events.js          ← AXIE_* progression event bus (the future AXP hook)
     save.js            ← localStorage save (selected Axie, crops, journal, bond…)
-    audio.js           ← synthesized WebAudio (no assets), ambience + SFX
+    audio.js           ← synthesized WebAudio (no assets): ambience,
+                         generative music loop, per-class Axie pick motifs, SFX
     input.js  camera.js  particles.js  utils.js
   axie/
     axies.js           ← AxieIdentity + AxieTraits (plain data, provider-swappable)
@@ -134,7 +145,7 @@ js/
     spirits.js  puzzles.js  restoration.js  progression.js
     interactions.js      ← the E-key layer (kept DOM-free)
   ui/
-    hud.js  menus.js  dialogue.js  toasts.js  screens.js
+    hud.js  menus.js  dialogue.js  toasts.js  screens.js  minimap.js
   game/state.js        ← central state + save hydration
   main.js              ← loop, mode state machine, input routing
 ```
@@ -172,7 +183,8 @@ A refresh restores the grove exactly; the title screen offers **Continue**.
 
 - Axie art is procedural stand-ins (the swap point for real collection art is
   `axie/sprites.js` + `axie/provider.js`).
-- Audio is synthesized WebAudio placeholder ambience/SFX — no music track.
+- Audio is synthesized WebAudio — the music loop is generative (composed in
+  code), so it can be swapped for a real track later without touching gameplay.
 - One compact handcrafted map (intentionally small, per "vertical slice").
 - The demo is designed to be completable in roughly 10–15 minutes.
 

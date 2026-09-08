@@ -9,7 +9,7 @@ const FIELDS = [
   'px', 'py',
   'phaseT', 'glowdust',
   'plots', 'inv', 'fuel', 'selectedSeed',
-  'restored', 'puzzles', 'spirits', 'areas', 'deepest',
+  'restored', 'puzzles', 'spirits', 'areas', 'deepest', 'minimap',
   'bondXp', 'bondLevel', 'level',
   'journal', 'flags', 'times',
 ];
