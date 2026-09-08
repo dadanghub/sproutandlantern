@@ -134,6 +134,42 @@ globalThis.requestAnimationFrame = (cb) => { rafCb = cb; return 1; };
 let t = 1000;
 const FRAME = 16.7;
 
+// Mock WebAudio: the game's audio code (music scheduler, SFX, pick motifs)
+// runs for real under test. currentTime is tied to the test clock, and
+// exponential ramps to <=0 throw exactly like a browser. (This mock is what
+// catches the kind of bug where the music scheduler crashes the frame loop
+// ~11s in — a freeze invisible without an AudioContext.)
+let mockOscCount = 0;
+class MockParam {
+  constructor(v = 0) { this.value = v; }
+  setValueAtTime(v) { this.value = v; }
+  linearRampToValueAtTime(v) { this.value = v; }
+  exponentialRampToValueAtTime(v) {
+    if (v <= 0) throw new RangeError('exponentialRampToValueAtTime: target must be > 0');
+    this.value = v;
+  }
+  setTargetAtTime(v) { this.value = v; }
+  connect(n) { return n; }
+}
+class MockAudioContext {
+  constructor() {
+    this.sampleRate = 44100;
+    this.state = 'running';
+    this.destination = { connect: (n) => n };
+  }
+  get currentTime() { return t / 1000; }
+  resume() {}
+  createOscillator() {
+    mockOscCount++;
+    return { type: 'sine', frequency: new MockParam(), connect: (n) => n, start() {}, stop() {} };
+  }
+  createGain() { return { gain: new MockParam(1), connect: (n) => n }; }
+  createBiquadFilter() { return { type: 'lowpass', frequency: new MockParam(440), Q: new MockParam(1), connect: (n) => n }; }
+  createBufferSource() { return { buffer: null, loop: false, connect: (n) => n, start() {} }; }
+  createBuffer(_ch, len) { return { getChannelData: () => new Float32Array(len) }; }
+}
+globalThis.AudioContext = MockAudioContext;
+
 function frames(n) {
   for (let i = 0; i < n; i++) {
     const cb = rafCb;
@@ -183,15 +219,17 @@ let g = dbg.game;
 check('axie is Fern (Plant)', g.axieName === 'Fern' && g.axieCls === 'plant');
 frames(5);
 
-// per-axie pick sound + music loop are safe to call (no AudioContext here)
+// per-axie pick motifs + music loop run on the mocked WebAudio graph
 {
   const { audio } = await import('../js/core/audio.js');
   audio.axiePick('plant');
   audio.axiePick('aquatic');
-  audio.startMusic();
-  frames(5); // music scheduler runs under update() with null ctx
-  audio.stopMusic();
-  check('pick sounds + music loop calls are safe', true);
+  audio.axiePick('reptile');
+  check('pick motifs synthesize oscillators', mockOscCount > 0);
+  // music started in beginRun; run ~23.4s = two full 32-step passes (A + B).
+  // (pre-fix: the scheduler crashed at step 32, ~11.4s in, killing the rAF loop)
+  frames(1400);
+  check('music loop schedules full A/B pattern', mockOscCount > 70);
 }
 
 // HUD carries the portrait + Twilight minimap canvases

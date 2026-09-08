@@ -150,8 +150,10 @@ class AudioMgr {
       0, 0, 523.25, 587.33, 0, 523.25, 440.0, 0,
       0, 0, 440.0, 0, 493.88, 0, 587.33, 0,
     ];
-    const bar = Math.floor(step / 8);
-    const inBar = step % 8;
+    // step cycles 0..63 (two 32-step passes A/B) — index into the 32-step pattern
+    const s = step % 32;
+    const bar = Math.floor(s / 8);
+    const inBar = s % 8;
     const chord = BARS[bar];
     const ctx = this.ctx;
     const bus = this._musicBus;
@@ -186,7 +188,7 @@ class AudioMgr {
       o.stop(at + 0.55);
     }
     // melody
-    const note = (pass ? MELODY_B : MELODY_A)[step];
+    const note = (pass ? MELODY_B : MELODY_A)[s];
     if (note) {
       const o = ctx.createOscillator();
       o.type = 'triangle';

@@ -54,7 +54,8 @@ node test/smoke.mjs
 Boots the real game under a DOM stub and plays the whole slice:
 plant → harvest → craft fuel → all three light puzzles → all three restorations →
 Moonflower discovery → ending → save/load round-trip — including the
-minimap's purification grid and the new audio paths. **48 checks.**
+minimap's purification grid and the new audio paths (run on a mocked
+WebAudio graph, so the music scheduler is actually executed). **49 checks.**
 
 ---
 
