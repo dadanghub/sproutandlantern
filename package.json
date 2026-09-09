@@ -4,6 +4,11 @@
   "description": "Axie: Sprout & Lantern — a cozy farming and twilight exploration Vibeathon prototype.",
   "type": "module",
   "scripts": {
-    "start": "python3 serve.py"
+    "start": "python3 serve.py",
+    "test": "node test/smoke.mjs",
+    "test:realdom": "node test/realdom.mjs"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.0"
   }
 }

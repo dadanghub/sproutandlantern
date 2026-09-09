@@ -115,10 +115,17 @@ export function hydrateGame(saved, axieDef) {
     if (k in g) {
       if (saved[k] && typeof saved[k] === 'object' && !Array.isArray(saved[k]) && typeof g[k] === 'object' && g[k] && !Array.isArray(g[k])) {
         g[k] = { ...g[k], ...saved[k] };
-        // second level merge for nested objects
+        // second level merge for nested PLAIN OBJECTS only — arrays
+        // (journal.plants/seeds/recent…) must stay arrays, so they are
+        // taken whole from the save instead of being spread into objects
         for (const sub of Object.keys(g[k])) {
-          if (g[k][sub] && typeof g[k][sub] === 'object' && saved[k][sub] && typeof saved[k][sub] === 'object') {
-            g[k][sub] = { ...g[k][sub], ...saved[k][sub] };
+          const a = g[k][sub];
+          const b = saved[k][sub];
+          if (
+            a && typeof a === 'object' && !Array.isArray(a) &&
+            b && typeof b === 'object' && !Array.isArray(b)
+          ) {
+            g[k][sub] = { ...a, ...b };
           }
         }
       } else {

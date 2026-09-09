@@ -250,6 +250,32 @@ for (let i = 0; i < 4; i++) { key('KeyE'); key('KeyE', false); frames(2); }
 const { dialogueActive } = await import('../js/ui/dialogue.js');
 check('opening dialogue actually closed', dialogueActive() === false);
 
+// ---- FRESH-STATE probe: open every modal right after the run starts
+// (the state a real player hits — level 1, empty journal, 0 bond, etc.)
+{
+  const { openJournal, openInventory, openLantern, openWorkbench, openBoard, openShop, closeModal, isModalOpen } = await import('../js/ui/menus.js');
+  const probeUi = { toast() {}, banner() {}, markDirty() {}, openMenu() {}, openPlant() {}, showDialogue() {} };
+  openJournal(g);
+  check('fresh journal opens (fresh state)', isModalOpen());
+  closeModal();
+  openInventory(g, null);
+  check('fresh inventory opens', isModalOpen());
+  closeModal();
+  openLantern(g, probeUi);
+  check('fresh lantern opens', isModalOpen());
+  closeModal();
+  openWorkbench(g, probeUi);
+  check('fresh workbench opens', isModalOpen());
+  closeModal();
+  openBoard(g, probeUi);
+  check('fresh board opens', isModalOpen());
+  closeModal();
+  openShop(g, probeUi);
+  check('fresh shop opens', isModalOpen());
+  closeModal();
+  frames(10);
+}
+
 // ---- walk to first plot (plot 0 at 710,1710) and plant
 console.log('farming…');
 const { plantCrop, waterCrop, harvestCrop } = await import('../js/systems/farming.js');
@@ -496,6 +522,13 @@ console.log('continue…');
 globalThis.document.getElementById('screen-title').querySelector('[data-act="continue"]').dispatch('click');
 frames(5);
 check('continue restores the run', dbg.mode === 'play' && dbg.game.flags.moonflower === true && dbg.game.puzzles.stonesDone === true);
+check('hydrated journal arrays stay arrays', Array.isArray(dbg.game.journal.recent) && Array.isArray(dbg.game.journal.plants) && Array.isArray(dbg.game.journal.seeds) && Array.isArray(dbg.game.journal.fuels));
+// the journal must open on the continued run (this is where it used to freeze)
+menus.openJournal(dbg.game);
+check('journal opens on continued run', menus.isModalOpen());
+menus.closeModal();
+frames(5);
+check('no frame errors in the whole run', dbg.frameErrors === 0);
 frames(5);
 
 // ---- long idle: make sure nothing explodes over a "session"

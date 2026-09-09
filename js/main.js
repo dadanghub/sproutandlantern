@@ -38,6 +38,7 @@ if (typeof window !== 'undefined') {
   window.__sproutDebug = {
     get game() { return game; },
     get mode() { return mode; },
+    frameErrors: 0,
   };
 }
 let W = 0, H = 0, DPR = 1;
@@ -247,11 +248,24 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  update(dt, now);
-  render(dt, now);
+  // Defense in depth: an exception must never silently kill the loop and
+  // leave the game as a frozen tab. Log it, tell the player once, carry on.
+  try {
+    update(dt, now);
+    render(dt, now);
+  } catch (err) {
+    window.__sproutDebug.frameErrors++;
+    console.error('[Axie] frame error (loop kept alive):', err);
+    if (now - lastFrameErrorToast > 10000) {
+      lastFrameErrorToast = now;
+      toast(`The grove hiccuped (${String(err && err.message || err)}) — but it keeps going.`);
+    }
+  }
   input.endFrame();
   requestAnimationFrame(frame);
 }
+
+let lastFrameErrorToast = -1e9;
 
 function update(dt, now) {
   Particles.update(dt);

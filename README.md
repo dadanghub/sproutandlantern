@@ -51,17 +51,24 @@ branch; no config file needed.)
 ### Headless smoke test
 
 ```bash
-node test/smoke.mjs
+node test/smoke.mjs          # or: npm test
+node test/realdom.mjs        # or: npm run test:realdom (needs: npm install)
 ```
 
-Boots the real game under a DOM stub and plays the whole slice:
-plant → harvest → craft fuel → all three light puzzles → all three restorations →
-Moonflower discovery → ending → save/load round-trip — including the
-minimap's purification grid, the new audio paths (run on a mocked WebAudio
-graph, so the music scheduler is actually executed), and the real input path
-(fuel keys 1/2/3, Ember Pulse, rest, Grove Song, spirit dialogue, ending
-buttons — including that the opening dialogue actually closes on E).
-**64 checks.**
+`smoke.mjs` boots the real game under a strict DOM stub and plays the whole
+slice: plant → harvest → craft fuel → all three light puzzles → all three
+restorations → Moonflower discovery → ending → save/load round-trip —
+including the minimap's purification grid, the audio paths (run on a mocked
+WebAudio graph, so the music scheduler is actually executed), and the real
+input path (fuel keys 1/2/3, Ember Pulse, rest, Grove Song, spirit dialogue,
+ending buttons — including that the opening dialogue actually closes on E).
+**73 checks.**
+
+`realdom.mjs` additionally boots the game under a real DOM (happy-dom,
+dev-only) and plays the human path with real keyboard events — title → intro
+→ select (all three demo Axies) → play → journal open/close (J key and HUD
+chip) → **Continue run with a mid-game save → journal again**. This is what
+caught the save-hydration journal freeze.
 
 ---
 
