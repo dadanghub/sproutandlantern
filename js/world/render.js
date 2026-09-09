@@ -23,10 +23,12 @@ import { clamp, lerp, TAU } from '../core/utils.js';
 
 let dark = document.createElement('canvas');
 let dctx = dark.getContext('2d');
-function sizeDark(w, h) {
-  if (dark.width !== w || dark.height !== h) {
-    dark.width = w;
-    dark.height = h;
+function sizeDark(w, h, dpr) {
+  // back the darkness layer with device pixels so it stays crisp on HiDPI
+  const dw = Math.round(w * dpr), dh = Math.round(h * dpr);
+  if (dark.width !== dw || dark.height !== dh) {
+    dark.width = dw;
+    dark.height = dh;
   }
 }
 
@@ -59,7 +61,11 @@ function mix(a, b, t) {
 }
 
 export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
-  sizeDark(W, H);
+  // Match the HiDPI backing store (see resize() in main.js): draw in CSS px
+  // scaled by devicePixelRatio, so the view fills the whole screen instead
+  // of landing in the top-left corner on retina/scaled displays.
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  sizeDark(W, H, dpr);
   const nightOverride = opts.nightT; // 0..1 forced (ending)
   const cam = camera;
   const zoom = cam.zoom;
@@ -70,7 +76,7 @@ export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
   const vis = (x, y, r = 0) =>
     x > cam.x - halfW - r && x < cam.x + halfW + r && y > cam.y - halfH - r && y < cam.y + halfH + r;
 
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
   ctx.save();
@@ -106,7 +112,7 @@ export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
   // ---------------- darkness (twilight) ----------------
   const darkAlpha = clamp(night, 0, 1) * 0.94;
   if (darkAlpha > 0.01) {
-    dctx.setTransform(1, 0, 0, 1, 0, 0);
+    dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     dctx.clearRect(0, 0, W, H);
     dctx.fillStyle = `rgba(9,8,26,${darkAlpha})`;
     dctx.fillRect(0, 0, W, H);

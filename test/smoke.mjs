@@ -535,4 +535,29 @@ frames(5);
 frames(2000);
 check('survives 2000 idle frames', true);
 
+// ---- HiDPI: renderGame must scale by devicePixelRatio
+// (regression: on retina/scaled displays the view landed in the top-left
+// corner, letterboxed by the dark page background)
+const { renderGame } = await import('../js/world/render.js');
+{
+  globalThis.devicePixelRatio = 2;
+  const transforms = [];
+  const hiCanvas = { width: 2560, height: 1440 };
+  const hiCtx = {};
+  for (const p of CTX_PROPS) hiCtx[p] = undefined;
+  for (const m of CTX_METHODS) {
+    hiCtx[m] = (...a) => {
+      if (m === 'setTransform') { transforms.push(a); return undefined; }
+      if (m.startsWith('create') && m !== 'createImageData') return { addColorStop() {} };
+      if (m === 'measureText') return { width: 10 };
+      if (m === 'getLineDash') return [];
+      return undefined;
+    };
+  }
+  hiCtx.canvas = hiCanvas;
+  renderGame(hiCtx, 1280, 720, dbg.game, 0.016, 1234567, {});
+  globalThis.devicePixelRatio = 1;
+  check('HiDPI render scales by devicePixelRatio', transforms.length > 0 && transforms[0][0] === 2 && transforms[0][3] === 2);
+}
+
 console.log(`\n${passed} checks passed${process.exitCode ? ' (with failures)' : ' — all good'}`);
