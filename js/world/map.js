@@ -64,6 +64,7 @@ export const BRIDGE = { x: 2050, y: 918, w: 200, h: 64 };
 export const THICKET = { x: 2280, y: 1120, w: 190, h: 170 };
 export const DEEP_PATH = { x: 2392, y: 236, w: 116, h: 250 }; // locked until stone circle solved
 export const DEEP_ARCH = { x: 2450, y: 268 };
+export const GROVE_LANTERN = { x: 2450, y: 380 }; // the old keeper's lantern, at the edge of the Twilight
 export const STONE_CIRCLE = { x: 2450, y: 600, r: 96 };
 export const STONES = [
   { id: 'spore', x: 2450, y: 492, glyph: 'moonspore' },

@@ -39,6 +39,7 @@ if (typeof window !== 'undefined') {
     get game() { return game; },
     get mode() { return mode; },
     frameErrors: 0,
+    photosCaptured: 0,
   };
 }
 let W = 0, H = 0, DPR = 1;
@@ -204,6 +205,17 @@ async function boot() {
   window.addEventListener('keydown', startAudio);
   window.addEventListener('beforeunload', () => {
     if (game && mode === 'play') Save.save(game);
+  });
+
+  // Hidden tab: rAF freezes, so save progress and pause the audio graph
+  // (it resumes cleanly when the player comes back).
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (game && mode === 'play') Save.save(game);
+      audio.onTabHidden();
+    } else {
+      audio.onTabShown();
+    }
   });
 
   last = performance.now();
@@ -477,6 +489,33 @@ function tryFuel(id) {
   audio.sfx('craft');
 }
 
+// ------------------------------------------------------------- photo mode
+// P: save the current lantern view as a full-resolution PNG.
+function capturePhoto() {
+  if (typeof canvas.toBlob !== 'function') {
+    toast('Photos aren’t supported in this browser.');
+    return;
+  }
+  audio.sfx('shutter');
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+  const slug = (game ? game.axieName : 'axie').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sprout-lantern-${slug}-${stamp}.png`;
+    if (document.body) document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    window.__sproutDebug.photosCaptured++;
+    toast('📷 Photo saved to your downloads.');
+  }, 'image/png');
+}
+
 function handlePlayInput() {
   // NB: modals and dialogues are separate locks — the dialogue branch below
   // must be reachable while a dialogue is up (it is the only way to advance it).
@@ -519,6 +558,10 @@ function handlePlayInput() {
   }
   if (input.consume('KeyI')) {
     menus.openInventory(game, null);
+    return;
+  }
+  if (input.consume('KeyP')) {
+    capturePhoto();
     return;
   }
   if (input.consume('Escape')) {

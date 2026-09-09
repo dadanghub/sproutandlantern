@@ -92,6 +92,7 @@ class FakeEl {
   prepend(n) { n._parent = this; this.children.unshift(n); }
   addEventListener(t, fn) { (this._listeners[t] = this._listeners[t] || []).push(fn); }
   removeEventListener() {}
+  click() {}
   dispatch(t, ev) { (this._listeners[t] || []).forEach((f) => f(ev || {})); }
   querySelector(sel) {
     if (!this._q[sel]) this._q[sel] = new FakeEl('div');
@@ -158,7 +159,8 @@ class MockAudioContext {
     this.destination = { connect: (n) => n };
   }
   get currentTime() { return t / 1000; }
-  resume() {}
+  suspend() { this.state = 'suspended'; return Promise.resolve(); }
+  resume() { this.state = 'running'; return Promise.resolve(); }
   createOscillator() {
     mockOscCount++;
     return { type: 'sine', frequency: new MockParam(), connect: (n) => n, start() {}, stop() {} };
@@ -361,7 +363,7 @@ frames(5);
 // ---- interaction paths the slice doesn't otherwise touch ----
 console.log('interactions…');
 const { currentInteraction, performInteraction } = await import('../js/systems/interactions.js');
-const { BUILT, DEEP_ARCH, REST_STONE, SPIRIT_POS } = await import('../js/world/map.js');
+const { BUILT, DEEP_ARCH, REST_STONE, SPIRIT_POS, GROVE_LANTERN } = await import('../js/world/map.js');
 const fakeUi = { toast() {}, banner() {}, markDirty() {}, openMenu() {}, openPlant() {}, showDialogue() {} };
 
 // fuel switching via the real 1/2/3 input path
@@ -408,6 +410,18 @@ frames(5);
   performInteraction(g, fakeUi, t);
 }
 
+// the old lantern is cold before the grove is whole (no moonflower yet)
+g.px = GROVE_LANTERN.x; g.py = GROVE_LANTERN.y + 16;
+frames(5);
+{
+  const t = currentInteraction(g);
+  check('cold lantern found before the ritual', t && t.act === 'groveLantern');
+  performInteraction(g, fakeUi, t);
+  check('cold lantern stays cold', g.flags.groveLanternLit === false);
+}
+g.px = DEEP_ARCH.x; g.py = DEEP_ARCH.y + 20;
+frames(5);
+
 // ember pulse (bond 5) — also purifies a wide swathe of the minimap
 g.bondXp = 300; g.bondLevel = 5;
 const cellsBefore = g.minimap.cells.filter((c) => c).length;
@@ -434,6 +448,19 @@ check('moonflower interaction found', target && target.act === 'moonflower');
 performInteraction(g, fakeUi, target);
 check('moonflower discovered', g.flags.moonflower === true);
 check('moonflower seed gained', (g.inv.seeds.moonflower || 0) >= 1);
+frames(5);
+
+// ---- the Grovekeeper's lantern: the Deep Twilight payoff
+console.log('grove lantern…');
+g.px = GROVE_LANTERN.x; g.py = GROVE_LANTERN.y + 16;
+frames(5);
+{
+  const t = currentInteraction(g);
+  check('old lantern interaction found', t && t.act === 'groveLantern');
+  performInteraction(g, fakeUi, t);
+  check('grovekeeper lantern lit', g.flags.groveLanternLit === true);
+  check('journal records the ritual', g.journal.recent.some((e) => String(e.text || e).includes('Grovekeeper')));
+}
 frames(5);
 
 // ---- ending should trigger after a short delay
@@ -534,6 +561,26 @@ frames(5);
 // ---- long idle: make sure nothing explodes over a "session"
 frames(2000);
 check('survives 2000 idle frames', true);
+
+// ---- photo mode: P saves the current view as a PNG
+globalThis.document.getElementById('game').toBlob = (cb) => cb({ size: 1 });
+if (globalThis.URL) {
+  globalThis.URL.createObjectURL = () => 'blob:mock';
+  globalThis.URL.revokeObjectURL = () => {};
+}
+key('KeyP');
+key('KeyP', false);
+frames(2);
+check('photo mode captures a PNG (P)', dbg.photosCaptured === 1);
+
+// ---- tab visibility: audio pauses cleanly, resumes on return
+const { audio } = await import('../js/core/audio.js');
+audio.init();
+audio.onTabHidden();
+check('hidden tab suspends the audio context', audio.ctx.state === 'suspended');
+audio.onTabShown();
+check('returning tab resumes the audio context', audio.ctx.state === 'running');
+check('no frame errors through photo + visibility', dbg.frameErrors === 0);
 
 // ---- HiDPI: renderGame must scale by devicePixelRatio
 // (regression: on retina/scaled displays the view landed in the top-left

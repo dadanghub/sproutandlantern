@@ -8,6 +8,7 @@
 
 import {
   WORLD, PLOTS, BUILT, STREAM, BRIDGE, THICKET, DEEP_PATH, DEEP_ARCH,
+  GROVE_LANTERN,
   STONE_CIRCLE, STONES, FLOWERS, SPIRIT_POS, GARDEN, MOONFLOWER_PLOT,
   DREAM_POD, POUCH, REST_STONE, TRAIL, POSTS, DECOR, POIS,
 } from './map.js';
@@ -175,6 +176,10 @@ export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
   // deep arch
   if (game.puzzles.stonesDone) {
     glowAt(DEEP_ARCH.x, DEEP_ARCH.y - 10, 130, 'rgba(199,155,255,$A)', 0.28 * (0.8 + 0.2 * Math.sin(now * 0.002)));
+  }
+  // the old lantern, once lit, shines all the way across the Twilight
+  if (game.flags.groveLanternLit) {
+    glowAt(GROVE_LANTERN.x, GROVE_LANTERN.y - 40, 240, 'rgba(255,233,180,$A)', 0.22 + 0.04 * Math.sin(now * 0.002));
   }
   // lit stones & flowers
   for (const s of STONES) if (isStoneLit(game, s)) glowAt(s.x, s.y - 24, 60, rgba(FUELS[s.glyph].color, 0.3), 0.5);
@@ -821,6 +826,57 @@ function drawForestDetails(ctx, game, vis, now) {
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
     rr(ctx, 2410, 218, 80, 8, 4);
     ctx.fill();
+
+    // the Grovekeeper's old lantern — cold until the grove is whole
+    {
+      const g = GROVE_LANTERN;
+      const lit = game.flags.groveLanternLit;
+      const pulse = 0.75 + 0.25 * Math.sin(now * 0.002);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(g.x, g.y + 16, 26, 7, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = lit ? '#5f648c' : '#3c4160';
+      rr(ctx, g.x - 20, g.y - 18, 40, 34, 8);
+      ctx.fill();
+      ctx.fillStyle = lit ? '#6d7398' : '#4a4f6e';
+      rr(ctx, g.x - 15, g.y - 24, 30, 10, 5);
+      ctx.fill();
+      // the old lantern itself (weathered, bigger than the station's)
+      ctx.fillStyle = '#4a3a26';
+      rr(ctx, g.x - 9, g.y - 52, 18, 30, 5);
+      ctx.fill();
+      if (lit) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const lg = ctx.createRadialGradient(g.x, g.y - 40, 4, g.x, g.y - 40, 130 * pulse);
+        lg.addColorStop(0, 'rgba(255,233,180,0.30)');
+        lg.addColorStop(1, 'rgba(255,233,180,0)');
+        ctx.fillStyle = lg;
+        ctx.beginPath();
+        ctx.arc(g.x, g.y - 40, 130 * pulse, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+        ctx.globalAlpha = 0.75 + 0.25 * pulse;
+        ctx.fillStyle = '#ffe9a0';
+        rr(ctx, g.x - 6, g.y - 48, 12, 22, 4);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = 'rgba(120,130,180,0.30)';
+        rr(ctx, g.x - 6, g.y - 48, 12, 22, 4);
+        ctx.fill();
+        // a faint cold outline so it can be found in the dark
+        ctx.strokeStyle = 'rgba(150,156,200,0.25)';
+        ctx.lineWidth = 1.5;
+        rr(ctx, g.x - 9, g.y - 52, 18, 30, 5);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#4a3a26';
+      rr(ctx, g.x - 11, g.y - 56, 22, 6, 2);
+      ctx.fill();
+    }
+
     // mist wall when locked
     if (!open) {
       ctx.save();

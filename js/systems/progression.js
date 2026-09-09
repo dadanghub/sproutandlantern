@@ -52,8 +52,10 @@ export function questHint(game) {
   if (!game.puzzles.stonesDone) return `Light the three stones as the carving tells: gold, blue, violet.`;
   if (!game.restored.workshop) return `Restore the Lantern Workshop (E at the Restoration Board). 60 Glowdust.`;
   if (!game.flags.moonflower) return `Follow the hidden trail. Dreamcap light (3) reveals shy things.`;
-  if (!game.flags.endingSeen) return `The Grove stirs...`;
-  return '';
+  const missing = ['seedkeeper', 'workshop', 'teahouse'].filter((k) => !game.restored[k]);
+  if (missing.length) return `Restore what remains (E at the Restoration Board). Then take the light to the edge of the Twilight.`;
+  if (!game.flags.groveLanternLit) return `The old lantern waits beyond the arch — the edge of the Twilight (E).`;
+  return `The Grove stirs...`;
 }
 
 /** Exploration: first entry into a zone. */
@@ -81,10 +83,10 @@ export function updateZones(game) {
   }
 }
 
-/** Ending: rare Moonflower found + Lantern Workshop restored. */
+/** Ending: the Grovekeeper's old lantern, lit at the edge of the Twilight. */
 export function updateEnding(game, dt) {
   if (game.flags.endingSeen) return;
-  if (game.flags.moonflower && game.restored.workshop) {
+  if (game.flags.groveLanternLit) {
     if (game.fx.endingDelay < 0) game.fx.endingDelay = 3.5;
     game.fx.endingDelay -= dt;
     if (game.fx.endingDelay <= 0) {

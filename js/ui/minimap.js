@@ -8,7 +8,7 @@
 // All drawing uses only the basic Canvas2D API (see test/smoke.mjs).
 
 import { TAU } from '../core/utils.js';
-import { FOREST, STREAM, DEEP_PATH, BRIDGE, STONES, FLOWERS, SPIRIT_POS, REST_STONE, DEEP_ARCH, MOONFLOWER_PLOT } from '../world/map.js';
+import { FOREST, STREAM, DEEP_PATH, BRIDGE, STONES, FLOWERS, SPIRIT_POS, REST_STONE, DEEP_ARCH, MOONFLOWER_PLOT, GROVE_LANTERN } from '../world/map.js';
 import { lightRadius, FUELS } from '../systems/lantern.js';
 
 export const MM_CELL = 55; // world px per map cell
@@ -190,6 +190,10 @@ export function minimapDraw(ctx, game, now) {
   if (a.clearing) dot(REST_STONE.x, REST_STONE.y, '#8a93c8', 2, 0.9);
   // the deep arch (once the circle is solved)
   if (game.flags.deepPath) dot(DEEP_ARCH.x, DEEP_ARCH.y, '#c79bff', 2.4, 0.9 + 0.1 * Math.sin(now * 0.003));
+  // the Grovekeeper's old lantern — gold once it is lit
+  if (game.flags.deepPath) {
+    dot(GROVE_LANTERN.x, GROVE_LANTERN.y, game.flags.groveLanternLit ? '#ffe9a0' : '#9aa0c8', 2.6, game.flags.groveLanternLit ? 1 : 0.8);
+  }
 
   // the player: a lantern dot, fuel-tinted
   const inMap = game.px >= FOREST.x && game.py <= FOREST.y + FOREST.h;

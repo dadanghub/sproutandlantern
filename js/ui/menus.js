@@ -455,7 +455,7 @@ export function openPause(game, ui) {
     });
     mk('Return to Title', () => ui.toTitle());
     body.append(list);
-    body.append(el('div', 'craft-note', 'WASD move · E interact · 1/2/3 lantern · I inventory · J journal · M sound · Esc pause'));
+    body.append(el('div', 'craft-note', 'WASD move · E interact · 1/2/3 lantern · I inventory · J journal · P photo · M sound · Esc pause'));
   });
 }
 

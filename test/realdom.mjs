@@ -74,7 +74,8 @@ class MockAudioContext {
     this.destination = { connect: (n) => n };
   }
   get currentTime() { return t / 1000; }
-  resume() {}
+  suspend() { this.state = 'suspended'; return Promise.resolve(); }
+  resume() { this.state = 'running'; return Promise.resolve(); }
   createOscillator() {
     return { type: 'sine', frequency: new MockParam(), connect: (n) => n, start() {}, stop() {} };
   }

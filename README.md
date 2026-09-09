@@ -57,12 +57,15 @@ node test/realdom.mjs        # or: npm run test:realdom (needs: npm install)
 
 `smoke.mjs` boots the real game under a strict DOM stub and plays the whole
 slice: plant → harvest → craft fuel → all three light puzzles → all three
-restorations → Moonflower discovery → ending → save/load round-trip —
-including the minimap's purification grid, the audio paths (run on a mocked
-WebAudio graph, so the music scheduler is actually executed), and the real
-input path (fuel keys 1/2/3, Ember Pulse, rest, Grove Song, spirit dialogue,
-ending buttons — including that the opening dialogue actually closes on E).
-**73 checks.**
+restorations → Moonflower discovery → the Grovekeeper's lantern ritual at the
+edge of the Twilight (cold before the grove is whole, lit once it is) →
+ending → save/load round-trip — including the minimap's purification grid,
+the audio paths (run on a mocked WebAudio graph, so the music scheduler is
+actually executed), and the real input path (fuel keys 1/2/3, Ember Pulse,
+rest, Grove Song, spirit dialogue, ending buttons — including that the
+opening dialogue actually closes on E), photo mode (P), and tab-visibility
+audio suspend/resume.
+**83 checks.**
 
 `realdom.mjs` additionally boots the game under a real DOM (happy-dom,
 dev-only) and plays the human path with real keyboard events — title → intro
@@ -81,6 +84,7 @@ caught the save-hydration journal freeze.
 | 1 / 2 / 3 | Switch lantern fuel (Moonspore / Sunpetal / Dreamcap) |
 | I | Satchel (inventory) |
 | J | Grove Journal |
+| P | Photo (saves the current view as a PNG) |
 | Esc | Pause |
 | M | Sound on/off (ambience + music) |
 | L | Ember Pulse (Bond 5) |
@@ -118,6 +122,12 @@ caught the save-hydration journal freeze.
   variations, ~23s full pattern) darkens through a lowpass as twilight falls,
   layered over the forest ambience. Each Axie class has its own selection
   motif (sprout, droplet, chirp, thud, buzz, hiss).
+- **The ending — the Grovekeeper's lantern:** once the grove is whole (all
+  three restorations) and the rare Moonflower is found, the old keeper's
+  never-lit lantern at the edge of the Twilight (beyond the stone-circle arch)
+  is the one thing left cold. Light it (E) and the grove's story closes — the
+  lantern glows for the rest of the run and on the minimap, and the ending
+  plays. Before the grove is whole it stays cold and tells you why.
 
 ### Demo Axies
 

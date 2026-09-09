@@ -101,6 +101,32 @@ class AudioMgr {
     return this.muted;
   }
 
+  // ------------------------------------------------- tab visibility ------
+  // When the tab hides, rAF stops — and with it the music scheduler — so
+  // the loop would die mid-phrase. Suspend the context so everything
+  // freezes in place; on return, resume and re-anchor the scheduler in
+  // case the context kept running in the background (Chrome does), which
+  // would otherwise dump every missed note at once.
+  onTabHidden() {
+    if (this.ctx && this.ctx.state !== 'suspended') {
+      try {
+        const p = this.ctx.suspend();
+        if (p && p.catch) p.catch(() => {});
+      } catch (e) { /* older browsers: fine, scheduler just idles */ }
+    }
+  }
+
+  onTabShown() {
+    if (!this.ctx) return;
+    try {
+      const p = this.ctx.resume();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* ignore */ }
+    const t = this.ctx.currentTime;
+    if (this._musicOn && this._musicNextT < t) this._musicNextT = t + 0.2;
+    if (this._nextCricket < t) this._nextCricket = t + 0.4;
+  }
+
   // ------------------------------------------------------------ music ----
   // A short 4-bar loop at 84 BPM (32 eighth-note steps): Am · F · C · G.
   // Pad + bass + a gentle pentatonic melody; every other pass plays a
@@ -348,6 +374,10 @@ class AudioMgr {
       case 'spirit': this.blip(987.77, 0.3, 'sine', 0.045); this.blip(1318.5, 0.4, 'sine', 0.04, 0.09); break;
       case 'pet': this.blip(740, 0.07, 'sine', 0.045); this.blip(880, 0.09, 'sine', 0.04, 0.05); break;
       case 'error': this.blip(170, 0.16, 'sine', 0.04); break;
+      case 'shutter': // soft camera click
+        this.noiseBurst(0.04, 2600, 0.028);
+        this.blip(900, 0.05, 'sine', 0.03, 0.04);
+        break;
       case 'pulse':
         this.blip(220, 0.35, 'sine', 0.05);
         this.blip(880, 0.5, 'sine', 0.04, 0.12);

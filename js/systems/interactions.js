@@ -4,7 +4,7 @@
 
 import {
   PLOTS, BUILT, SPIRIT_POS, MOONFLOWER_PLOT, DREAM_POD, POUCH,
-  REST_STONE, DEEP_ARCH,
+  REST_STONE, DEEP_ARCH, GROVE_LANTERN,
 } from '../world/map.js';
 import { PLANTS } from './plants.js';
 import { plantCrop, waterCrop, harvestCrop } from './farming.js';
@@ -79,6 +79,15 @@ export function currentInteraction(game) {
 
   // deep arch
   push(DEEP_ARCH.x, DEEP_ARCH.y + 20, 70, 'The edge of the Twilight', 'deep');
+
+  // the Grovekeeper's old lantern (only on the opened deep path)
+  if (game.puzzles.stonesDone) {
+    push(
+      GROVE_LANTERN.x, GROVE_LANTERN.y + 16, 64,
+      game.flags.groveLanternLit ? 'The lit lantern' : 'Light the old lantern',
+      'groveLantern',
+    );
+  }
 
   // bonus seed you dug up (Bond 2)
   if (game.fx.bonusSeed) {
@@ -160,10 +169,50 @@ export function performInteraction(game, ui, target) {
 
     case 'deep':
       if (game.puzzles.stonesDone) {
-        ui.toast('The edge of the Twilight. Beyond, more paths wait.');
+        ui.toast(game.flags.groveLanternLit
+          ? 'The edge of the Twilight. Your lantern answers the old one across the dark.'
+          : 'The edge of the Twilight. Something old waits on the far side of the arch.');
         Particles.sparkle(DEEP_ARCH.x, DEEP_ARCH.y, '#c79bff', 10, 50);
       }
       break;
+
+    case 'groveLantern': {
+      if (game.flags.groveLanternLit) {
+        ui.toast('It glows quietly. The grove remembers its keeper.');
+        break;
+      }
+      const missing = ['seedkeeper', 'workshop', 'teahouse'].filter((k) => !game.restored[k]);
+      if (missing.length || !game.flags.moonflower) {
+        audio.sfx('error');
+        ui.toast('The old lantern is cold. The grove must be whole first — and the Moonflower found.');
+        break;
+      }
+      // the ritual: give the never-lit lantern the light the grove has made
+      game.flags.groveLanternLit = true;
+      Particles.ring(GROVE_LANTERN.x, GROVE_LANTERN.y - 8, '#ffe9a0', 760);
+      Particles.ring(GROVE_LANTERN.x, GROVE_LANTERN.y - 8, '#c79bff', 520);
+      Particles.sparkle(GROVE_LANTERN.x, GROVE_LANTERN.y - 20, '#ffe9a0', 26, 90);
+      audio.sfx('big');
+      addJournalRecent(game, 'You lit the Grovekeeper’s lantern at the edge of the Twilight.');
+      addBondXp(game, 30, 'lit the Grovekeeper’s lantern');
+      emitProgressionEvent('AXIE_LIT_GROVE_LANTERN', {
+        axieId: game.axieId,
+        level: game.level,
+        bond: game.bondLevel,
+      });
+      ui.showDialogue(
+        [
+          { who: 'The Grove', text: 'You found it, little one. The lantern the old keeper set by the arch — the one that never held a flame.' },
+          { who: 'The Grove', text: 'It does not need your fuel. It needs what you carried home: a whole grove, a lit heart, a light that was shared.' },
+          { who: 'The Grove', text: 'Give it that. And the Twilight will remember what it was to be kept.' },
+        ],
+        () => {
+          ui.banner('The Old Lantern', 'It takes the grove’s light and gives it back a hundredfold.', '#ffe9a0');
+          ui.markDirty();
+        },
+      );
+      break;
+    }
 
     case 'pod': {
       setSpecial(game, 'dream-pod');

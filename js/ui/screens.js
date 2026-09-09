@@ -34,7 +34,7 @@ export function buildScreens(root, handlers) {
       </div>
       <div class="title-keys">
         <span><b>WASD</b> move</span><span><b>E</b> interact</span><span><b>1·2·3</b> lantern</span>
-        <span><b>I</b> satchel</span><span><b>J</b> journal</span><span><b>Esc</b> pause</span>
+        <span><b>I</b> satchel</span><span><b>J</b> journal</span><span><b>P</b> photo</span><span><b>Esc</b> pause</span>
       </div>
       <div class="title-foot">Demo Axies included · no wallet required · progress saves in this browser</div>
     </div>`;
@@ -104,8 +104,8 @@ export function buildScreens(root, handlers) {
   end.innerHTML = `
     <div class="ending-card">
       <div class="ending-kicker">The Grove Remembers</div>
-      <p class="ending-line">“You’ve only uncovered the edge of the Twilight.”</p>
-      <p class="ending-line">“More paths are waiting.”</p>
+      <p class="ending-line">“The lantern that never held a flame burns now — and the Twilight leans in to hear it.”</p>
+      <p class="ending-line">“You’ve only uncovered the edge of the Twilight. More paths are waiting.”</p>
       <div class="ending-rule"></div>
       <h2 class="ending-logo">AXIE: SPROUT &amp; LANTERN</h2>
       <p class="ending-sub">A peaceful adventure, lantern by lantern.</p>

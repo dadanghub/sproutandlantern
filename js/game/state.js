@@ -90,6 +90,7 @@ export function newGame(axieDef) {
       enteredForest: false,
       moonflower: false,
       deepPath: false,
+      groveLanternLit: false,
       endingSeen: false,
       restCooldown: 0,
     },
