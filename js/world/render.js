@@ -83,6 +83,7 @@ export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
   drawGround(ctx, game, night, vis);
   drawGroveDetails(ctx, game, night, vis, now);
   drawForestDetails(ctx, game, vis, now);
+  drawCorruptionMist(ctx, game, vis, now);
   drawCrops(ctx, game, vis, now);
 
   // actors, y-sorted
@@ -110,10 +111,11 @@ export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
     dctx.fillStyle = `rgba(9,8,26,${darkAlpha})`;
     dctx.fillRect(0, 0, W, H);
 
-    // lantern hole
+    // lantern hole (with a subtle spore-flame flicker)
     const sx = (game.px - cam.x) * zoom + W / 2;
     const sy = (game.py - cam.y) * zoom + H / 2;
-    const R = (lightRadius(game) + (game.fx.pulseT > 0 ? 520 : 0)) * zoom;
+    const flick = 1 + 0.014 * Math.sin(now * 0.011) + 0.009 * Math.sin(now * 0.027 + 1.3);
+    const R = (lightRadius(game) * flick + (game.fx.pulseT > 0 ? 520 : 0)) * zoom;
     const g = dctx.createRadialGradient(sx, sy, R * 0.22, sx, sy, R);
     g.addColorStop(0, 'rgba(0,0,0,1)');
     g.addColorStop(0.7, 'rgba(0,0,0,0.85)');
@@ -179,6 +181,18 @@ export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
   // ambient halo around the Axie's lantern (the lantern itself is on the sprite)
   const lc = fuelColor(game) ? FUELS[game.fuel].color : '#ffcf9e';
   glowAt(game.px + game.facing * 20, game.py - 2, lightRadius(game) * 0.55, rgba(lc, 0.16), 1);
+  // wide light spill on the ground
+  if (night > 0.2) glowAt(game.px, game.py + 8, lightRadius(game) * 0.95, rgba(lc, 0.07 * night), 1);
+  // the lantern's reflection on the glowing stream
+  if (night > 0.15 && game.fuel) {
+    const stx = 2150 + Math.sin(((game.py - 140) / 1300) * 5.2) * 26;
+    if (Math.abs(game.px - stx) < 170 && game.py > 170 && game.py < 1410) {
+      for (let k = 0; k < 5; k++) {
+        const jx = Math.sin(now * 0.002 + k * 1.7) * 4;
+        glowAt(stx + jx, game.py + 8 + k * 9, 8, rgba(FUELS[game.fuel].color, (0.15 - k * 0.024) * night), 1);
+      }
+    }
+  }
 
   // fireflies (twilight) & pollen (day)
   if (night > 0.2) {
@@ -200,6 +214,16 @@ export function renderGame(ctx, W, H, game, dt, now, opts = {}) {
     }
   }
   ctx.restore();
+
+  // golden-hour grade: a warm wash peaking at mid-dusk
+  const duskA = Math.sin(Math.PI * clamp(night, 0, 1)) * 0.055;
+  if (duskA > 0.004) {
+    ctx.fillStyle = `rgba(255,150,70,${duskA})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // soft vignette (cached per screen size)
+  drawVignette(ctx, W, H);
 
   // ---------------- discovery flash ----------------
   if (game.fx.flash > 0) {
@@ -228,7 +252,8 @@ function drawAxieSprite(ctx, game, now) {
     colors: AXIE_COLORS[game.axieCls] || AXIE_COLORS.plant,
   };
   // Player avatar: slightly larger, carrying the SLP lantern.
-  drawAxie(ctx, def, game.px, game.py, game.walkT, {
+  // (now/1000 — not walkT — so breathing/blinking continue while standing still)
+  drawAxie(ctx, def, game.px, game.py, now / 1000, {
     moving: game.moving,
     facing: game.facing,
     happy: game.axieHappyT > 0,
@@ -246,6 +271,60 @@ function drawAxieSprite(ctx, game, now) {
     ctx.stroke();
     ctx.restore();
   }
+}
+
+// --------------------------------------------------- corruption mist ------
+// Visible haze over the parts of the forest that are not yet purified.
+// Driven by the minimap's purified grid: where your lantern has been,
+// the mist is gone — the "purify the corrupted forest" loop, in-world.
+let mistTex = null;
+function mistTexture() {
+  if (mistTex) return mistTex;
+  mistTex = document.createElement('canvas');
+  mistTex.width = 64;
+  mistTex.height = 64;
+  const c = mistTex.getContext('2d');
+  const g = c.createRadialGradient(32, 32, 2, 32, 32, 30);
+  g.addColorStop(0, 'rgba(132,120,182,0.55)');
+  g.addColorStop(0.7, 'rgba(118,108,168,0.28)');
+  g.addColorStop(1, 'rgba(118,108,168,0)');
+  c.fillStyle = g;
+  c.fillRect(0, 0, 64, 64);
+  return mistTex;
+}
+
+const MIST_W = 30, MIST_H = 27; // matches the minimap grid (55px cells)
+function drawCorruptionMist(ctx, game, vis, now) {
+  const cells = game.minimap && game.minimap.cells;
+  if (!cells) return;
+  const tex = mistTexture();
+  for (let iy = 0; iy < MIST_H; iy++) {
+    for (let ix = 0; ix < MIST_W; ix++) {
+      if (cells[iy * MIST_W + ix]) continue; // purified — clear
+      const cx = 1350 + (ix + 0.5) * 55;
+      const cy = (iy + 0.5) * 55;
+      if (!vis(cx, cy, 40)) continue;
+      const v = (ix * 7 + iy * 13) % 10;
+      const drift = Math.sin(now * 0.0004 + ix * 0.7 + iy * 1.3) * 3;
+      ctx.globalAlpha = 0.34 + (v % 5) * 0.07;
+      ctx.drawImage(tex, cx - 32 + drift, cy - 32, 64, 64);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+let vignette = null;
+let vignW = 0, vignH = 0;
+function drawVignette(ctx, W, H) {
+  if (!vignette || vignW !== W || vignH !== H) {
+    vignette = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.72);
+    vignette.addColorStop(0, 'rgba(6,6,18,0)');
+    vignette.addColorStop(1, 'rgba(6,6,18,0.20)');
+    vignW = W;
+    vignH = H;
+  }
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, W, H);
 }
 
 // class palettes mirrored from axie/axies.js (kept local to avoid a cycle)
@@ -1168,9 +1247,10 @@ function drawBuildings(ctx, game, night, vis, now) {
     ctx.globalAlpha = 1;
   }
 
-  // grove trees (canopy over actors)
+  // grove trees (canopy over actors) — canopies sway gently in the breeze
   for (const t of DECOR.groveTrees) {
     if (!vis(t.x, t.y, 90)) continue;
+    const sway = Math.sin(now * 0.0008 + t.x * 0.02) * 1.6;
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath();
     ctx.ellipse(t.x, t.y + 26 * t.s, 26 * t.s, 7 * t.s, 0, 0, TAU);
@@ -1180,15 +1260,16 @@ function drawBuildings(ctx, game, night, vis, now) {
     const col = night > 0.5 ? '#2c4258' : t.t > 0.5 ? '#4e7d43' : '#5d9350';
     ctx.fillStyle = col;
     ctx.beginPath();
-    ctx.arc(t.x - 10 * t.s, t.y - 26 * t.s, 24 * t.s, 0, TAU);
-    ctx.arc(t.x + 12 * t.s, t.y - 24 * t.s, 22 * t.s, 0, TAU);
-    ctx.arc(t.x, t.y - 42 * t.s, 26 * t.s, 0, TAU);
+    ctx.arc(t.x - 10 * t.s + sway, t.y - 26 * t.s, 24 * t.s, 0, TAU);
+    ctx.arc(t.x + 12 * t.s + sway * 0.8, t.y - 24 * t.s, 22 * t.s, 0, TAU);
+    ctx.arc(t.x + sway * 0.6, t.y - 42 * t.s, 26 * t.s, 0, TAU);
     ctx.fill();
   }
 
-  // forest trees (silhouettes)
+  // forest trees (silhouettes) — a slower, heavier sway
   for (const t of DECOR.forestTrees) {
     if (!vis(t.x, t.y, 100)) continue;
+    const sway = Math.sin(now * 0.0006 + t.x * 0.017) * 2.2;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
     ctx.ellipse(t.x, t.y + 30 * t.s, 30 * t.s, 8 * t.s, 0, 0, TAU);
@@ -1197,15 +1278,15 @@ function drawBuildings(ctx, game, night, vis, now) {
     ctx.fillRect(t.x - 5 * t.s, t.y - 12 * t.s, 10 * t.s, 40 * t.s);
     ctx.fillStyle = t.t > 0.5 ? '#1d2240' : '#191e38';
     ctx.beginPath();
-    ctx.arc(t.x - 12 * t.s, t.y - 30 * t.s, 26 * t.s, 0, TAU);
-    ctx.arc(t.x + 14 * t.s, t.y - 28 * t.s, 24 * t.s, 0, TAU);
-    ctx.arc(t.x, t.y - 48 * t.s, 28 * t.s, 0, TAU);
+    ctx.arc(t.x - 12 * t.s + sway, t.y - 30 * t.s, 26 * t.s, 0, TAU);
+    ctx.arc(t.x + 14 * t.s + sway * 0.8, t.y - 28 * t.s, 24 * t.s, 0, TAU);
+    ctx.arc(t.x + sway * 0.6, t.y - 48 * t.s, 28 * t.s, 0, TAU);
     ctx.fill();
     // rim light
     ctx.strokeStyle = 'rgba(120,140,255,0.14)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(t.x, t.y - 40 * t.s, 30 * t.s, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.arc(t.x + sway * 0.6, t.y - 40 * t.s, 30 * t.s, Math.PI * 1.1, Math.PI * 1.9);
     ctx.stroke();
   }
 }
@@ -1350,11 +1431,24 @@ function drawMori(ctx, now) {
     ctx.arc(ox, oy, r, 0, TAU);
     ctx.fill();
   }
-  ctx.fillStyle = '#2a2438';
-  ctx.beginPath();
-  ctx.arc(-3.5, 5, 1.8, 0, TAU);
-  ctx.arc(3.5, 5, 1.8, 0, TAU);
-  ctx.fill();
+  if ((now * 0.001) % 4.3 < 0.12) {
+    // blink
+    ctx.strokeStyle = '#2a2438';
+    ctx.lineWidth = 1.3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-5.2, 5);
+    ctx.lineTo(-1.8, 5);
+    ctx.moveTo(1.8, 5);
+    ctx.lineTo(5.2, 5);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = '#2a2438';
+    ctx.beginPath();
+    ctx.arc(-3.5, 5, 1.8, 0, TAU);
+    ctx.arc(3.5, 5, 1.8, 0, TAU);
+    ctx.fill();
+  }
   ctx.strokeStyle = '#2a2438';
   ctx.lineWidth = 1.3;
   ctx.beginPath();

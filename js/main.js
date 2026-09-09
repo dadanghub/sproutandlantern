@@ -329,8 +329,15 @@ function updatePlay(dt, now) {
       const sp = 235;
       tryMove(game, dx * sp * dt, dy * sp * dt);
       game.walkT += dt;
+      // soft dust puffs underfoot
+      game.fx.stepT = (game.fx.stepT || 0) + dt;
+      if (game.fx.stepT > 0.32) {
+        game.fx.stepT = 0;
+        Particles.puff(game.px, game.py + 12, phaseAt(game.px, game.py) < 0.5 ? '#c8b489' : '#7a7aa0', 2, 14);
+      }
     } else {
       game.moving = false;
+      game.fx.stepT = 0;
     }
 
   }

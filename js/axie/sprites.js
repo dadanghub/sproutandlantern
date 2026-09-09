@@ -4,22 +4,41 @@
 
 import { TAU, roundRect } from '../core/utils.js';
 
-/** Draw the Axie sprite centered at (x, y). t = walk/anim time, facing = -1|1. */
+/** Draw the Axie sprite centered at (x, y). t = anim time, facing = -1|1. */
 export function drawAxie(ctx, def, x, y, t, opts = {}) {
   const { body, accent, glow } = def.colors;
-  const walk = opts.moving ? Math.sin(t * 9) : Math.sin(t * 2.4) * 0.4;
+  const moving = !!opts.moving;
+  const ph = t * 9; // walk phase
+  const walk = moving ? Math.sin(ph) : Math.sin(t * 2.4) * 0.4;
   const bob = walk * 1.6;
+  const hop = opts.hop === false || !opts.happy ? 0 : Math.abs(Math.sin(t * 5)) * 2.2;
+  const lean = moving ? Math.sin(ph) * 0.045 : Math.sin(t * 2.4) * 0.018;
+  const squash = moving ? 1 + Math.cos(ph) * 0.03 : 1 + Math.sin(t * 2.4) * 0.014;
   const sc = opts.scale || 1;
+  const blink = !opts.happy && (t % 3.7) < 0.11;
 
   ctx.save();
-  ctx.translate(x, y + bob);
+  ctx.translate(x, y + bob - hop);
   ctx.scale(sc, sc);
   if (opts.facing < 0) ctx.scale(-1, 1);
 
-  // shadow
+  // shadow (stays on the ground, unaffected by lean/squash)
   ctx.fillStyle = 'rgba(10,10,20,0.28)';
   ctx.beginPath();
-  ctx.ellipse(0, 15 - bob, 12, 4.5, 0, 0, TAU);
+  ctx.ellipse(0, 15 - bob + hop, 12, 4.5, 0, 0, TAU);
+  ctx.fill();
+
+  // body lean + squash & stretch
+  ctx.rotate(lean);
+  ctx.scale(1 - (squash - 1) * 0.55, squash);
+
+  // feet: two little paws in a two-step
+  const stepL = moving ? Math.max(0, Math.sin(ph)) * 3 : 0;
+  const stepR = moving ? Math.max(0, Math.sin(ph + Math.PI)) * 3 : 0;
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.ellipse(-5, 11.5 - stepL, 3.4, 2.1, 0, 0, TAU);
+  ctx.ellipse(6, 11.5 - stepR, 3.4, 2.1, 0, 0, TAU);
   ctx.fill();
 
   // tail per class
@@ -129,6 +148,17 @@ export function drawAxie(ctx, def, x, y, t, opts = {}) {
       ctx.arc(ex, -2.5, 2.4, Math.PI * 1.1, Math.PI * 1.9);
       ctx.stroke();
     }
+  } else if (blink) {
+    // closed eyes
+    ctx.strokeStyle = '#2a2438';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(1.5, -2.4);
+    ctx.lineTo(4.5, -2.4);
+    ctx.moveTo(7, -2.4);
+    ctx.lineTo(10, -2.4);
+    ctx.stroke();
   } else {
     ctx.fillStyle = '#2a2438';
     ctx.beginPath();
@@ -158,8 +188,9 @@ export function drawAxie(ctx, def, x, y, t, opts = {}) {
 
   // ---- the SLP lantern the Axie carries (drawn on the front side) ----
   if (opts.lantern) {
+    const armSway = moving ? Math.sin(ph + Math.PI) * 0.7 : 0;
     const sw = Math.sin(t * 2.2) * 0.8;
-    const lx = 17.5, ly = -2 + sw * 0.5;
+    const lx = 17.5, ly = -2 + sw * 0.5 + armSway;
     // stick
     ctx.strokeStyle = '#8a6a44';
     ctx.lineWidth = 1.8;
@@ -239,7 +270,7 @@ export function paintPortrait(canvas, def) {
   ctx.save();
   ctx.translate(s / 2, s * 0.56);
   ctx.scale(s / 46, s / 46);
-  drawAxie(ctx, def, 0, 0, 1.2, { moving: false, facing: 1, happy: true, lantern: '#ffd9a8' });
+  drawAxie(ctx, def, 0, 0, 1.2, { moving: false, facing: 1, happy: true, lantern: '#ffd9a8', hop: false });
   ctx.restore();
 }
 
